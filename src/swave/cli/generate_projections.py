@@ -16,7 +16,7 @@ import sys
 import logging
 import argparse
 
-from src.swave.generate_dotplots_projections import process_dotplot_bundles_to_projections
+from swave.generate_dotplots_projections import process_dotplot_bundles_to_projections
 
 
 logging.basicConfig(

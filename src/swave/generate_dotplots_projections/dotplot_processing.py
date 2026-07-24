@@ -22,7 +22,7 @@ import gzip
 from matplotlib import pyplot as plt
 
 from .structures import Dotplot
-from src.utils import calculate_stride_size
+from swave.utils import calculate_stride_size
 
 
 logging.basicConfig(

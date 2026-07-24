@@ -15,7 +15,7 @@ import math
 import numpy as np
 
 from .structures import Diag
-from src.swave.utils import reverse_complement_seq, is_kmer_similar, calculate_seq_similarity_larger_than
+from swave.utils import reverse_complement_seq, is_kmer_similar, calculate_seq_similarity_larger_than
 
 
 def base_level_dotplot_extension(unique_diags, x_seq, y_seq, x2y_matrix, raw_project_x, raw_project_x_rev, raw_kmer_size, stride_size):

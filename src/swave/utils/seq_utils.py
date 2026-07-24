@@ -83,7 +83,7 @@ def calculate_seq_similarity(seq1, seq2):
         return 0
 
     # use dotplot projection for sequence similarity
-    from src.generate_dotplots_projections_mod.structures import Dotplot
+    from swave.generate_dotplots_projections.structures import Dotplot
 
     # use the shorter seq as x_seq, and projection to the shorter seq
     if len(seq1) < len(seq2):
@@ -98,7 +98,7 @@ def calculate_seq_similarity(seq1, seq2):
 
 
 def calculate_seq_similarity_larger_than(thresh, seq_orient, seq1, seq2, extend_orient):
-    from src.generate_dotplots_projections_mod.structures import Dotplot
+    from swave.generate_dotplots_projections.structures import Dotplot
 
     if seq_orient == "forward":
         dotplot = Dotplot(seq1, seq2, 10, str(len(seq1)) + str(len(seq2)) + extend_orient, stride_size=None, given_x_kmer_index=None, skip_reverse=True)
@@ -153,7 +153,7 @@ def calculate_seq_similarity_larger_than(thresh, seq_orient, seq1, seq2, extend_
 
 
 def calculate_seq_repeat_ratio(seq1):
-    from src.generate_dotplots_projections_mod.structures import Dotplot
+    from swave.generate_dotplots_projections.structures import Dotplot
 
     if len(seq1) == 0:
         return np.inf

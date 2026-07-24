@@ -17,7 +17,7 @@ import os
 import logging
 import argparse
 
-from src.swave.predict import process_projections_to_predictions
+from swave.predict import process_projections_to_predictions
 
 
 logging.basicConfig(

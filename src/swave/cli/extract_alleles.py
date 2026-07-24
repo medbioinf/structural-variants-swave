@@ -15,7 +15,7 @@ Copyright (c) 2026 Jonah Kapski <Jonah.Kapski@edu.ruhr-uni-bochum.de>
 import sys
 import argparse
 
-from src.swave.extract_alleles import (
+from swave.extract_alleles import (
     load_nodes_from_gfa_fasta,
     parse_minigraph_bed_to_snarls,
     extract_and_write_alleles_to_fasta

@@ -17,7 +17,7 @@ import os
 import logging
 import argparse
 
-from src.swave.call_variants import process_predictions_to_tsv
+from swave.call_variants import process_predictions_to_tsv
 
 
 logging.basicConfig(

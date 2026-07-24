@@ -15,7 +15,7 @@ import sys
 import pysam
 import logging
 
-from src import __version__
+from swave import __version__
 
 
 logging.basicConfig(

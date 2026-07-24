@@ -16,7 +16,7 @@ import os
 import re
 import logging
 
-from src.swave.utils import reverse_complement_seq
+from swave.utils import reverse_complement_seq
 from .structures import Node, Snarl
 
 

@@ -16,7 +16,7 @@ import logging
 import numpy as np
 from matplotlib import pyplot as plt
 
-from src.swave.utils.seq_utils import reverse_complement_seq, calculate_stride_size
+from swave.utils.seq_utils import reverse_complement_seq, calculate_stride_size
 
 
 logging.basicConfig(

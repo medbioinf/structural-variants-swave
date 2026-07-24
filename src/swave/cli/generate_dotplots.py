@@ -16,7 +16,7 @@ import sys
 import logging
 import argparse
 
-from src.swave.generate_dotplots_projections import process_sample_alleles_to_dotplots
+from swave.generate_dotplots_projections import process_sample_alleles_to_dotplots
 
 
 logging.basicConfig(

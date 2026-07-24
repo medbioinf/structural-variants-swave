@@ -17,7 +17,7 @@ import os
 import logging
 import argparse
 
-from src.swave.write_vcf import process_tsv_files_to_vcf
+from swave.write_vcf import process_tsv_files_to_vcf
 
 
 logging.basicConfig(

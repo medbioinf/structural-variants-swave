@@ -12,7 +12,7 @@ Copyright (c) 2026 Jonah Kapski <Jonah.Kapski@edu.ruhr-uni-bochum.de>
 """
 
 from .structures import SSV, CSV
-from src.swave.utils import calculate_seq_similarity, calculate_seq_repeat_ratio, find_continuous_val
+from swave.utils import calculate_seq_similarity, calculate_seq_repeat_ratio, find_continuous_val
 
 label2index = {"None": 0, "REF": 1, "DEL": 2, "INV": 3, "DUP": 4, "invDUP": 5}
 index2label = {0: "None", 1: "REF", 2: "DEL", 3: "INV", 4: "DUP", 5: "invDUP"}
