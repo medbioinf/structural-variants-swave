@@ -1,0 +1,12 @@
+work/
+.nextflow/
+.nextflow.log*
+results/
+testresults/
+.venv/
+Swave_original/
+.git/
+.github/
+.vscode/
+.devcontainer/
+data/
