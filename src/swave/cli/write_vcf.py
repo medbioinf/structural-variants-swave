@@ -27,7 +27,7 @@ logging.basicConfig(
 )
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="SWAVE_WRITE_VCF: Collects population-level variant calling TSVs "
                     "from samples and writes them into a finalized multi-sample "
@@ -67,3 +67,6 @@ if __name__ == "__main__":
     
     logging.info("SWAVE_WRITE_VCF completed successfully.")
     sys.exit(0)
+
+if __name__ == "__main__":
+    main()

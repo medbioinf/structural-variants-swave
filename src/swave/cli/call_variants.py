@@ -27,7 +27,7 @@ logging.basicConfig(
 )
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Reads predicted labels and dotplot bundles from a gzipped"
                                      ".pkl file and streams called variants into a structured TSV file.")
     
@@ -68,3 +68,6 @@ if __name__ == "__main__":
     )
 
     sys.exit(0)
+
+if __name__ == "__main__":
+    main()

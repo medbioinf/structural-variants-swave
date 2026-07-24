@@ -26,7 +26,7 @@ logging.basicConfig(
 )
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Generates dotplot objects (REF2REF, REF2ALT, ALT2ALT)"
                                      "from pangenome graph alleles and exports them into a compressed .pkl file.")
     
@@ -58,3 +58,6 @@ if __name__ == "__main__":
     logging.info(f"Dotplot generation for {options.alt_fasta} completed.")
     
     sys.exit(0)
+
+if __name__ == "__main__":
+    main()

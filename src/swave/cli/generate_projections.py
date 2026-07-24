@@ -26,7 +26,7 @@ logging.basicConfig(
 )
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Reads the dotplot bundles from a .pkl file and generates projections"
                                      "and segments them into matrices for each snarl, saving them into a compressed .pkl file.")
     
@@ -54,3 +54,6 @@ if __name__ == "__main__":
     logging.info(f"Projection generation for {options.dotplot_bundles_pkl} completed.")
     
     sys.exit(0)
+
+if __name__ == "__main__":
+    main()

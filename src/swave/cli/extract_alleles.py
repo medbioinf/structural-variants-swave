@@ -22,7 +22,7 @@ from src.swave.extract_alleles import (
 )
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Extracts structural variant alleles from a Pangenome Graph and sample BED files.")
     
     parser.add_argument("--gfa_fasta", required=True, help="Path to the GFA FASTA file containing node sequences.")
@@ -63,3 +63,6 @@ if __name__ == "__main__":
     extract_and_write_alleles_to_fasta(snarls_dict, fasta_index, options.output)
     
     sys.exit(0)
+
+if __name__ == "__main__":
+    main()

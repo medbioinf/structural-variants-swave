@@ -26,10 +26,10 @@ logging.basicConfig(
     stream=sys.stdout
 )
 
-SWAVE_MODEL_PATH = "/app/swave/src/predict_mod/LSTM-l1-fc64-bi.pth"
+SWAVE_MODEL_PATH = "/app/src/swave/predict/LSTM-l1-fc64-bi.pth"
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Reads the projections from a .pkl file, runs the trained Bi-LSTM modelto predict"
                                      "structural variant labels for each snarl, and saves the predictions into a compressed .pkl file.")
     
@@ -61,3 +61,6 @@ if __name__ == "__main__":
             device=options.device,
             num_threads=options.cpu_threads
         )
+
+if __name__ == "__main__":
+    main()
