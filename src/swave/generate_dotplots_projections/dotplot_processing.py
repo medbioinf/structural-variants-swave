@@ -203,13 +203,13 @@ def save_combined_dotplot_grid(bundle, output_path):
     ]
     
     for m, q_y, q_x, label in quadrants:
-        if m is None or (hasattr(m, "size") and m.size == 0):
+        if m is None:
             continue
         
-        m_h, m_w = m.shape
+        m_h, m_w = getattr(m, "shape", (0, 0))
         if m_h == 0 or m_w == 0:
             continue
-            
+        
         m_h, m_w = m.shape
         
         offset_y = q_y + padding + (max_side - m_h) // 2
@@ -217,11 +217,13 @@ def save_combined_dotplot_grid(bundle, output_path):
         
         grid_array[offset_y:offset_y + m_h, offset_x:offset_x + m_w] = 255
         
-        if hasattr(m, "tocoo"):
-            coo = m.tocoo()
-            grid_array[offset_y + coo.row, offset_x + coo.col] = 0
-        else:
-            grid_array[offset_y:offset_y + m_h, offset_x:offset_x + m_w] = np.where(m > 0, 0, 255)
+        has_points = (hasattr(m, "nnz") and m.nnz > 0) or (hasattr(m, "size") and m.size > 0 and np.any(m))
+        if has_points:
+            if hasattr(m, "tocoo"):
+                coo = m.tocoo()
+                grid_array[offset_y + coo.row, offset_x + coo.col] = 0
+            else:
+                grid_array[offset_y:offset_y + m_h, offset_x:offset_x + m_w] = np.where(m > 0, 0, 255)
     
     img = Image.fromarray(grid_array, mode='L')
     draw = ImageDraw.Draw(img)
@@ -229,23 +231,6 @@ def save_combined_dotplot_grid(bundle, output_path):
     total_size_px = quad_size * 2
     font_size = max(14, int(total_size_px / 50))
 
-    # Versuche eine skalierbare TrueType-Schriftart aus dem Linux-System zu laden
-    # font = None
-    # possible_fonts = [
-    #     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    #     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    #     "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
-    #     "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
-    # ]
-    # for font_path in possible_fonts:
-    #     if os.path.exists(font_path):
-    #         try:
-    #             font = ImageFont.truetype(font_path, font_size)
-    #             break
-    #         except Exception:
-    #             continue
-
-    # if font is None:
     try:
         font = ImageFont.load_default(size=font_size)
     except Exception:
@@ -254,6 +239,7 @@ def save_combined_dotplot_grid(bundle, output_path):
     for m, q_y, q_x, label in quadrants:
         if m is None:
             continue
+        
         m_h, m_w = getattr(m, "shape", (0, 0))
         if m_h == 0 or m_w == 0:
             continue
