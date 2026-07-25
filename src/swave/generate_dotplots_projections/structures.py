@@ -15,7 +15,8 @@ import os
 import sys
 import logging
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+import scipy.sparse as sp
+from PIL import Image
 
 from swave.utils.seq_utils import reverse_complement_seq, calculate_stride_size
 
@@ -48,8 +49,11 @@ class Dotplot:
 
         self.out_prefix = out_prefix
 
-        self.matrix = np.zeros((int(self.seq_y_len / self.stride_size) + 1, int(self.seq_x_len / self.stride_size) + 1))
-        self.matrix_rev = np.zeros((int(self.seq_y_len / self.stride_size) + 1, int(self.seq_x_len / self.stride_size) + 1))
+        n_rows = int(self.seq_y_len / self.stride_size) + 1
+        n_cols = int(self.seq_x_len / self.stride_size) + 1
+
+        self._rows, self._cols = [], []
+        self._rows_rev, self._cols_rev = [], []
 
         if against == "auto":
             if self.seq_x_len >= self.seq_y_len:
@@ -66,8 +70,13 @@ class Dotplot:
         else:
             logging.error("No such against axis: {}. Choose from [auto, x, y]".format(against))
 
-        self.matrix = self.matrix[:-1, :-1]
-        self.matrix_rev = self.matrix_rev[:-1, :-1]
+        data = np.ones(len(self._rows), dtype=np.uint8)
+        self.matrix = sp.csr_matrix((data, (self._rows, self._cols)), shape=(n_rows, n_cols))[:-1, :-1]
+
+        data_rev = np.ones(len(self._rows_rev), dtype=np.uint8)
+        self.matrix_rev = sp.csr_matrix((data_rev, (self._rows_rev, self._cols_rev)), shape=(n_rows, n_cols))[:-1, :-1]
+        
+        del self._rows, self._cols, self._rows_rev, self._cols_rev
 
     def create_matrix_against_x(self, given_x_kmer_index=None):
         if given_x_kmer_index is None:
@@ -78,22 +87,26 @@ class Dotplot:
         pos_on_y = 0
         while pos_on_y < self.seq_y_len:
             kmer_str = self.seq_y[pos_on_y: pos_on_y + self.kmer_size]
-
             index_on_y = int(pos_on_y / self.stride_size)
 
             # for original kmer
             if not self.skip_forward:
                 indexes_on_x = self.seq_x_kmer_index.find_all(kmer_str)
                 if indexes_on_x is not None:
-                    self.matrix[index_on_y, indexes_on_x] = 1
+                    for idx_x in indexes_on_x:
+                        self._rows.append(index_on_y)
+                        self._cols.append(idx_x)
 
             # for reversed kmer
             if not self.skip_reverse:
                 kmer_str_reversed = reverse_complement_seq(kmer_str)
                 indexes_on_x = self.seq_x_kmer_index.find_all(kmer_str_reversed)
                 if indexes_on_x is not None:
-                    self.matrix[index_on_y, indexes_on_x] = 1
-                    self.matrix_rev[index_on_y, indexes_on_x] = 1
+                    for idx_x in indexes_on_x:
+                        self._rows.append(index_on_y)
+                        self._cols.append(idx_x)
+                        self._rows_rev.append(index_on_y)
+                        self._cols_rev.append(idx_x)
 
             pos_on_y += self.stride_size
 
@@ -107,19 +120,25 @@ class Dotplot:
         while pos_on_x < self.seq_x_len:
             kmer_str = self.seq_x[pos_on_x: pos_on_x + self.kmer_size]
             index_on_x = int(pos_on_x / self.stride_size)
+            
             # for original kmer
             if not self.skip_forward:
                 indexes_on_y = self.seq_y_kmer_index.find_all(kmer_str)
                 if indexes_on_y is not None:
-                    self.matrix[indexes_on_y, index_on_x] = 1
+                    for idx_y in indexes_on_y:
+                        self._rows.append(idx_y)
+                        self._cols.append(index_on_x)
 
             # for reversed kmer
             if not self.skip_reverse:
                 kmer_str_reversed = reverse_complement_seq(kmer_str)
                 indexes_on_y = self.seq_y_kmer_index.find_all(kmer_str_reversed)
                 if indexes_on_y is not None:
-                    self.matrix[indexes_on_y, index_on_x] = 1
-                    self.matrix_rev[indexes_on_y, index_on_x] = 1
+                    for idx_y in indexes_on_y:
+                        self._rows.append(idx_y)
+                        self._cols.append(index_on_x)
+                        self._rows_rev.append(idx_y)
+                        self._cols_rev.append(index_on_x)
 
             pos_on_x += self.stride_size
 
@@ -133,8 +152,8 @@ class Dotplot:
         """
         Rotates the dotplot matrices and meta data to switch from ref2alt to alt2ref or vice versa.
         """
-        self.matrix = np.fliplr(np.rot90(self.matrix, k=-1))
-        self.matrix_rev = np.fliplr(np.rot90(self.matrix_rev, k=-1))
+        self.matrix = self.matrix.T[::-1, :]
+        self.matrix_rev = self.matrix_rev.T[::-1, :]
 
         tmp_seq_x = self.seq_x
         self.seq_x = self.seq_y
@@ -148,11 +167,12 @@ class Dotplot:
         """
         Projects the matrix ont the x-axis (sum of columns).
         """
-        project_x = np.sum(self.matrix, axis=0)
-        augment_coeff = int(100 * np.average(project_x))
+        project_x = self.matrix.sum(axis=0).A1
+        augment_coeff = int(100 * np.average(project_x)) if len(project_x) > 0 else 0
         
         if augment:
-            project_x[np.diag(self.matrix) == 1] += augment_coeff
+            diag = self.matrix.diagonal()
+            project_x[diag == 1] += augment_coeff
 
         return project_x, augment_coeff
 
@@ -160,18 +180,19 @@ class Dotplot:
         """
         Projects the reverse matrix onto the x-axis with a baseline.
         """
-        project_x_rev = baseline + np.sum(self.matrix_rev, axis=0)
+        project_x_rev = baseline + self.matrix_rev.sum(axis=0).A1
         return project_x_rev
 
     def get_project_y(self, augment=False):
         """
         Projects the matrix onto the y-axis (sum of rows).
         """
-        project_y = np.sum(self.matrix, axis=1)
-        augment_coeff = int(100 * np.average(project_y))
+        project_y = self.matrix.sum(axis=1).A1
+        augment_coeff = int(100 * np.average(project_y)) if len(project_y) > 0 else 0
 
         if augment:
-            project_y[np.diag(self.matrix) == 1] += augment_coeff
+            diag = self.matrix.diagonal()
+            project_y[diag == 1] += augment_coeff
 
         return project_y, augment_coeff
 
@@ -179,7 +200,7 @@ class Dotplot:
         """
         Projects the reverse matrix onto the y-axis with a baseline.
         """
-        project_y_rev = baseline + np.sum(self.matrix_rev, axis=1)
+        project_y_rev = baseline + self.matrix_rev.sum(axis=1).A1
         return project_y_rev
 
     def to_png(self, reverse=False, out_img=False):
