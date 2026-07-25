@@ -123,11 +123,10 @@ def process_sample_alleles_to_dotplots(alt_fasta_path, ref_fasta_path, pangenome
     ref_file.close()
     gfa_fasta_file.close()
     
-    #if snarl_dotplot_dict:
     ouput_pickle_path = f"{options.pkl_out_prefix}_dotplots.pkl.gz"
     
     with open(ouput_pickle_path, 'wb') as f:
-        with gzip.GzipFile(fileobj=f) as gz:
+        with gzip.GzipFile(fileobj=f, mode='wb') as gz:
             pickle.dump(snarl_dotplot_dict, gz)
     
     logging.info(f"Successfully saved {len(snarl_dotplot_dict)} snarl dotplot bundles.")       
