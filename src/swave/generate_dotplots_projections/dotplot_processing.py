@@ -19,7 +19,7 @@ import logging
 import numpy as np
 import pickle
 import gzip
-from matplotlib import pyplot as plt
+from PIL import Image, ImageDraw, ImageFont
 
 from .structures import Dotplot
 from swave.utils import calculate_stride_size
@@ -181,8 +181,11 @@ def save_combined_dotplot_grid(bundle, output_path):
     m_alt2alt = bundle["x2x_alt2alt"].matrix
     m_ref2alt_rev = bundle["x2y_ref2alt"].matrix_rev
     
-    if m_ref2alt.size == 0:
+    if hasattr(m_ref2alt, "size") and m_ref2alt.size == 0:
         logging.warning(f"Skipping dotplot pngs generation for {output_path}: ref2alt matrix is empty.")
+        return
+    elif hasattr(m_ref2alt, "shape") and (m_ref2alt.shape[0] == 0 or m_ref2alt.shape[1] == 0):
+        logging.warning(f"Skipping dotplot pngs generation for {output_path}: ref2alt matrix has zero dimension.")
         return
     
     h, w = m_ref2alt.shape
@@ -191,7 +194,7 @@ def save_combined_dotplot_grid(bundle, output_path):
     quad_size = max_side + (2 * padding)
     
     gray_bg_val = 245
-    dotplot_grid = np.ones((quad_size * 2, quad_size * 2), dtype=np.uint8) * gray_bg_val
+    grid_array = np.full((quad_size * 2, quad_size * 2), gray_bg_val, dtype=np.uint8)
     
     quadrants = [
         (m_ref2ref, 0, 0, "ref2ref"),
@@ -201,7 +204,11 @@ def save_combined_dotplot_grid(bundle, output_path):
     ]
     
     for m, q_y, q_x, label in quadrants:
-        if m.size == 0:
+        if m is None or (hasattr(m, "size") and m.size == 0):
+            continue
+        
+        m_h, m_w = m.shape
+        if m_h == 0 or m_w == 0:
             continue
             
         m_h, m_w = m.shape
@@ -209,47 +216,66 @@ def save_combined_dotplot_grid(bundle, output_path):
         offset_y = q_y + padding + (max_side - m_h) // 2
         offset_x = q_x + padding + (max_side - m_w) // 2
         
-        dotplot_grid[offset_y:offset_y + m_h, offset_x:offset_x + m_w] = 255
+        grid_array[offset_y:offset_y + m_h, offset_x:offset_x + m_w] = 255
         
-        dotplot_grid[offset_y : offset_y + m_h, offset_x : offset_x + m_w] = np.where(m > 0, 0, 255)
+        if hasattr(m, "tocoo"):
+            coo = m.tocoo()
+            grid_array[offset_y + coo.row, offset_x + coo.col] = 0
+        else:
+            grid_array[offset_y:offset_y + m_h, offset_x:offset_x + m_w] = np.where(m > 0, 0, 255)
+    
+    img = Image.fromarray(grid_array, mode='L')
+    draw = ImageDraw.Draw(img)
     
     total_size_px = quad_size * 2
-    dpi = 100
-    fig_size_inch = total_size_px / dpi
-    
-    fig, ax = plt.subplots(figsize=(fig_size_inch, fig_size_inch), dpi=dpi)
-    
-    ax.imshow(dotplot_grid, cmap='gray', aspect='equal', interpolation='none')
-    
-    ax.axis('off')
-    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-    
+    font_size = max(14, int(total_size_px / 50))
+
+    # Versuche eine skalierbare TrueType-Schriftart aus dem Linux-System zu laden
+    # font = None
+    # possible_fonts = [
+    #     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    #     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    #     "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+    #     "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+    # ]
+    # for font_path in possible_fonts:
+    #     if os.path.exists(font_path):
+    #         try:
+    #             font = ImageFont.truetype(font_path, font_size)
+    #             break
+    #         except Exception:
+    #             continue
+
+    # if font is None:
+    try:
+        font = ImageFont.load_default(size=font_size)
+    except Exception:
+        font = None
+
     for m, q_y, q_x, label in quadrants:
-        if m.size == 0:
+        if m is None:
             continue
-        m_h, m_w = m.shape
+        m_h, m_w = getattr(m, "shape", (0, 0))
+        if m_h == 0 or m_w == 0:
+            continue
         
         offset_y = q_y + padding + (max_side - m_h) // 2
         offset_x = q_x + padding + (max_side - m_w) // 2
         
         text = f"{label} ({m_w}x{m_h})"
         
-        font_size = max(6, total_size_px / 64)
+        if hasattr(draw, "textlength") and font is not None:
+            text_width = draw.textlength(text, font=font)
+        else:
+            text_width = len(text) * (font_size * 0.5)
+
+        text_x = offset_x + (m_w // 2) - (text_width // 2)
+        text_y = offset_y - int(padding * 0.65)
         
-        text_x = offset_x + (m_w // 2)
-        text_y = offset_y - (padding * 0.12)
-        
-        ax.text(
-            text_x, text_y, text,
-            color='black',
-            fontsize=font_size,
-            va='bottom',
-            ha='center'
-        )
+        draw.text((text_x, text_y), text, fill=0, font=font)
     
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    plt.savefig(output_path, dpi=dpi, bbox_inches='tight', pad_inches=0)
-    plt.close()
+    img.save(output_path, format="PNG")
 
 
 def generate_dotplots(ref_seq, alt_seq, dotplot_stride_size, dotplot_output_prefix, options):

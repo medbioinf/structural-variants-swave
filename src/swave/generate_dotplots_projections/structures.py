@@ -11,10 +11,11 @@ Modified and refactored for Nextflow integration.
 Copyright (c) 2026 Jonah Kapski <Jonah.Kapski@edu.ruhr-uni-bochum.de>
 """
 
+import os
 import sys
 import logging
 import numpy as np
-from matplotlib import pyplot as plt
+from PIL import Image, ImageDraw, ImageFont
 
 from swave.utils.seq_utils import reverse_complement_seq, calculate_stride_size
 
@@ -182,21 +183,27 @@ class Dotplot:
         return project_y_rev
 
     def to_png(self, reverse=False, out_img=False):
+        if not out_img:
+            return
+        
         self.dotplot_file = self.out_prefix + ".dotplot.png"
         target_matrix = self.matrix_rev if reverse else self.matrix
         
-        if target_matrix.size == 0:
+        m_h, m_w = getattr(target_matrix, "shape", (0, 0))
+        if m_h == 0 or m_w == 0:
             logging.warning(f"Skipping PNG generation for {self.dotplot_file}: Matrix is empty.")
             return
         
-        if np.max(target_matrix) == 0:
-            matrix_resize_norm = 255 * np.ones(np.shape(target_matrix))
+        if hasattr(target_matrix, "tocoo"):
+            img_array = np.full((m_h, m_w), 255, dtype=np.uint8)
+            coo = target_matrix.tocoo()
+            img_array[coo.row, coo.col] = 0
         else:
-            matrix_resize_norm = 255 * abs(target_matrix - np.max(target_matrix)) / (np.max(target_matrix) - np.min(target_matrix))
+            img_array = np.where(target_matrix > 0, 0, 255).astype(np.uint8)
 
-        if out_img:
-            plt.imsave(self.dotplot_file, matrix_resize_norm, cmap='gray')
-            plt.close()
+        os.makedirs(os.path.dirname(self.dotplot_file), exist_ok=True)
+        img = Image.fromarray(img_array, mode='L')
+        img.save(self.dotplot_file)
 
 
 class KmerIndex:
