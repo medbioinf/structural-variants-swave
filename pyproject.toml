@@ -21,6 +21,7 @@ dependencies = [
 
 [project.scripts]
 swave-extract-alleles = "swave.cli.extract_alleles:main"
+swave-split-alleles = "swave.cli.split_alleles:main"
 swave-generate-dotplots = "swave.cli.generate_dotplots:main"
 swave-generate-projections = "swave.cli.generate_projections:main"
 swave-predict = "swave.cli.predict:main"
