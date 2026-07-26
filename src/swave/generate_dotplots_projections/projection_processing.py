@@ -17,6 +17,9 @@ import gzip
 import pickle
 import logging
 import numpy as np
+
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
 from .diag_finder import find_and_denoise_diags, boost_diags
