@@ -13,6 +13,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "numpy==1.23.5",
+    "scipy==1.10.1",
     "matplotlib==3.5.1",
     "pysam==0.19.1",
     "torch"
