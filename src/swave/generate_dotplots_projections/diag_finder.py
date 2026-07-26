@@ -12,6 +12,7 @@ Copyright (c) 2026 Jonah Kapski <Jonah.Kapski@edu.ruhr-uni-bochum.de>
 """
 
 import numpy as np
+import scipy.sparse as sp
 from itertools import groupby
 
 from .structures import Diag
@@ -31,8 +32,19 @@ def find_line_diag(matrix, min_line_len, return_format="dict", flip_lr=False, ig
     else:
         candidate_line_diags = []
 
-    for offset in range(-rows + 1, cols):
+    if matrix.nnz == 0:
+        return candidate_line_diags
 
+    if sp.issparse(matrix):
+        coo = matrix.tocoo()
+        active_offsets = np.unique(coo.col - coo.row)
+    else:
+        r_arr, c_arr = np.where(matrix == 1)
+        active_offsets = np.unique(c_arr - r_arr)
+
+    active_offsets.sort()
+
+    for offset in active_offsets:
         if offset == ignore_offset:
             continue
 
@@ -40,8 +52,8 @@ def find_line_diag(matrix, min_line_len, return_format="dict", flip_lr=False, ig
 
         current_pointer = 0
 
-        for val, _ in groupby(diag):
-            group_len = len(list(_))
+        for val, group in groupby(diag):
+            group_len = len(list(group))
             group_start = current_pointer
             group_end = current_pointer + group_len - 1
 
