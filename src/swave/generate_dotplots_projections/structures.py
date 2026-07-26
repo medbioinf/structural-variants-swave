@@ -72,9 +72,11 @@ class Dotplot:
 
         data = np.ones(len(self._rows), dtype=np.uint8)
         self.matrix = sp.csr_matrix((data, (self._rows, self._cols)), shape=(n_rows, n_cols))[:-1, :-1]
+        self.matrix.data = np.minimum(self.matrix.data, 1)
 
         data_rev = np.ones(len(self._rows_rev), dtype=np.uint8)
         self.matrix_rev = sp.csr_matrix((data_rev, (self._rows_rev, self._cols_rev)), shape=(n_rows, n_cols))[:-1, :-1]
+        self.matrix_rev.data = np.minimum(self.matrix_rev.data, 1)
         
         del self._rows, self._cols, self._rows_rev, self._cols_rev
 
@@ -167,7 +169,7 @@ class Dotplot:
         """
         Projects the matrix ont the x-axis (sum of columns).
         """
-        project_x = self.matrix.sum(axis=0).A1
+        project_x = self.matrix.sum(axis=0).A1.astype(np.float64)
         augment_coeff = int(100 * np.average(project_x)) if len(project_x) > 0 else 0
         
         if augment:
@@ -180,14 +182,14 @@ class Dotplot:
         """
         Projects the reverse matrix onto the x-axis with a baseline.
         """
-        project_x_rev = baseline + self.matrix_rev.sum(axis=0).A1
+        project_x_rev = baseline + self.matrix_rev.sum(axis=0).A1.astype(np.float64)
         return project_x_rev
 
     def get_project_y(self, augment=False):
         """
         Projects the matrix onto the y-axis (sum of rows).
         """
-        project_y = self.matrix.sum(axis=1).A1
+        project_y = self.matrix.sum(axis=1).A1.astype(np.float64)
         augment_coeff = int(100 * np.average(project_y)) if len(project_y) > 0 else 0
 
         if augment:
@@ -200,7 +202,7 @@ class Dotplot:
         """
         Projects the reverse matrix onto the y-axis with a baseline.
         """
-        project_y_rev = baseline + self.matrix_rev.sum(axis=1).A1
+        project_y_rev = baseline + self.matrix_rev.sum(axis=1).A1.astype(np.float64)
         return project_y_rev
 
     def to_png(self, reverse=False, out_img=False):
