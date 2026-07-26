@@ -17,6 +17,12 @@ from itertools import groupby
 from .structures import Diag
 
 
+def flip_matrix_lr(matrix):
+    if sp.issparse(matrix):
+        return matrix[:, ::-1]
+    return np.fliplr(matrix)
+
+
 def find_line_diag(matrix, min_line_len, return_format="dict", flip_lr=False, ignore_offset=None):
     rows, cols = matrix.shape
 
@@ -229,8 +235,8 @@ def find_and_denoise_diags(x2x_matrix, x2y_matrix, x2y_matrix_rev, stride_size):
 
     max_shift_len = 50 / stride_size
 
-    x2x_matrix_fliplr = np.fliplr(x2x_matrix)
-    x2y_matrix_fliplr = np.fliplr(x2y_matrix)
+    x2x_matrix_fliplr = flip_matrix_lr(x2x_matrix)
+    x2y_matrix_fliplr = flip_matrix_lr(x2y_matrix)
 
     x2x_matrix_line_diags = find_line_diag(x2x_matrix, min_line_len=max(1, 30 / stride_size), return_format="dict", ignore_offset=0)
     x2x_matrix_line_diags_fliplr = find_line_diag(x2x_matrix_fliplr, min_line_len=max(1, 30 / stride_size), flip_lr=True, return_format="dict", ignore_offset=0)
@@ -288,7 +294,7 @@ def find_and_denoise_diags(x2x_matrix, x2y_matrix, x2y_matrix_rev, stride_size):
     unique_diags = sorted(unique_diags, key=lambda x: x.y_start)
 
     # for the reversed diags in x2y_matrix: check if they are really in the x2y_matrix_rev
-    x2y_matrix_rev_line_diags = find_line_diag(np.fliplr(x2y_matrix_rev), min_line_len=max(5, 50 / stride_size), flip_lr=True, return_format="dict")
+    x2y_matrix_rev_line_diags = find_line_diag(flip_matrix_lr(x2y_matrix_rev), min_line_len=max(5, 50 / stride_size), flip_lr=True, return_format="dict")
 
     x2y_matrix_rev_line_diags_bins = {}
     for offset in x2y_matrix_rev_line_diags:
