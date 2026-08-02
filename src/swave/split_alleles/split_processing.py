@@ -53,6 +53,9 @@ def split_and_interleave_fasta(fasta_path, prefix, seq_per_split):
     
     if not records:
         logging.warning("No sequences found in the FASTA file.")
+        empty_filename = f"{prefix}.split_01.fa"
+        with open(empty_filename, "w") as f:
+            pass
         return
     
     num_splits = len(records) // seq_per_split
