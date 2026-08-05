@@ -1,1 +1,2 @@
-__version__= "0.1.0"
+__title__ = "panswave"
+__version__ = "0.1.0"
