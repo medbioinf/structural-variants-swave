@@ -12,57 +12,50 @@ Modified and refactored for Nextflow integration.
 Copyright (c) 2026 Jonah Kapski <Jonah.Kapski@edu.ruhr-uni-bochum.de>
 """
 
-import sys
 import argparse
+import sys
 
-from swave.extract_alleles import (
-    load_nodes_from_gfa_fasta,
-    parse_minigraph_bed_to_snarls,
-    extract_and_write_alleles_to_fasta
-)
+from swave.extract_alleles import extract_alleles_for_sample
+from swave.version import __version__
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Extracts structural variant alleles from a Pangenome Graph and sample BED files.")
+    parser = argparse.ArgumentParser(description="Extracts structural variant alleles for a sample or reference from a pangenome graph, using either a minigraph BED file or a vg-deconstruct VCF as the allele-path source.")
     
-    parser.add_argument("--gfa_fasta", required=True, help="Path to the GFA FASTA file containing node sequences.")
-    parser.add_argument("--bed", required=True, help="Path to the sample minigraph --call BED file.")
+    parser.add_argument("--version", action="version", version=f"{__version__}")
+    
+    parser.add_argument("--graph_construction_tool", required=True, choices=["minigraph", "pggb", "cactus"], help="Pangenome graph construction tool that produced the input allele-path file.")
+    parser.add_argument("--gfa_fasta", required=True, help="Path to the gfatools gfa2fa node FASTA file.")
     parser.add_argument("--sample_id", required=True, help="Name/ID of the sample being processed.")
-    parser.add_argument("--output", default="output.fa", help="Output FASTA file for extracted alleles (default: output.fa).")
-    
-    # Optional parameters
-    parser.add_argument(
-        "--spec_snarl",
-        default=None,
-        help="Specific snarl ID to process (e.g. '>s1>s3') for debugging/analysis. If not provided, all snarls will be extracted."
-    )
-    parser.add_argument(
-        "--force_reverse",
-        action="store_true",
-        help="Enable original Swave inversion detection and rescue logic for reversed contigs."
-    )
-    parser.add_argument(
-        "--remove_small", 
-        action="store_true", 
-        help="Filter out small snarls/variants below the minimum SV size threshold."
-    )
-    parser.add_argument(
-        "--min_sv_size", 
-        type=int, 
-        default=50, 
-        help="Minimum size (in base pairs) for a variant to be considered a structural variant (default: 50)."
-    )
+    parser.add_argument("--output_dir", default=".", help="Directory to write the extracted allele FASTA file(s) into (default: current directory).")
+    parser.add_argument("--bed", default=None, help="Path to the sample minigraph --call BED file. Required when --graph_construction_tool=minigraph.")
+    parser.add_argument("--vcf", default=None, help="Path to the sample or reference vg-deconstruct VCF file. Required when --graph_construction_tool=pggb or cactus.")
+
+    # optional parameters
+    parser.add_argument("--spec_snarl", default=None, help="Specific snarl ID to process (e.g. '>s1>s3') for debugging/analysis. If not provided, all snarls will be extracted.")
+    parser.add_argument("--force_reverse", action="store_true", help="Enable original Swave inversion detection and rescue logic for reversed contigs. Only applies when --graph_construction_tool=minigraph.")
+    parser.add_argument("--remove_small", action="store_true", help="Filter out small snarls/variants below the minimum SV size threshold. Only applies when --graph_construction_tool=minigraph.")
+    parser.add_argument("--min_sv_size", type=int, default=50,help="Minimum size (in base pairs) for a variant to be considered a structural variant (default: 50).")
     
     options = parser.parse_args()
-    
-    nodes_dict, fasta_index = load_nodes_from_gfa_fasta(options.gfa_fasta)
-    
-    snarls_dict = {}
-    parse_minigraph_bed_to_snarls(options.bed, options.sample_id, snarls_dict, nodes_dict, options)
-    
-    extract_and_write_alleles_to_fasta(snarls_dict, fasta_index, options.output)
-    
+
+    if options.graph_construction_tool == "minigraph" and options.bed is None:
+        parser.error("--bed is required when --graph_construction_tool=minigraph")
+    if options.graph_construction_tool in ("pggb", "cactus") and options.vcf is None:
+        parser.error("--vcf is required when --graph_construction_tool=pggb or cactus")
+
+    extract_alleles_for_sample(
+        graph_construction_tool=options.graph_construction_tool,
+        sample_id=options.sample_id,
+        gfa_fasta_path=options.gfa_fasta,
+        output_dir=options.output_dir,
+        options=options,
+        bed_path=options.bed,
+        vcf_path=options.vcf,
+    )
+
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
