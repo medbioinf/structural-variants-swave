@@ -11,7 +11,6 @@ Modified and refactored for Nextflow integration.
 Copyright (c) 2026 Jonah Kapski <Jonah.Kapski@edu.ruhr-uni-bochum.de>
 """
 
-import os
 import sys
 import logging
 
@@ -25,10 +24,10 @@ logging.basicConfig(
 
 def split_and_interleave_fasta(fasta_path, prefix, seq_per_split):
     """   
-    Reads a FASTA file, sorts the alleles in descending order by length, and distributes
+    Reads a fasta file, sorts the alleles in descending order by length, and distributes
     them in a round-robin manner across (seq_per_fasta // seq_per_split) files.
     """
-    logging.info(f"Reading FASTA file: {fasta_path}")
+    logging.info(f"Reading fasta file: {fasta_path}")
     
     records = []
     current_header = None
@@ -52,7 +51,7 @@ def split_and_interleave_fasta(fasta_path, prefix, seq_per_split):
             records.append((current_header, seq_str, len(seq_str)))
     
     if not records:
-        logging.warning("No sequences found in the FASTA file.")
+        logging.warning("No sequences found in the fasta file")
         empty_filename = f"{prefix}.split_01.fa"
         with open(empty_filename, "w") as f:
             pass
@@ -63,10 +62,8 @@ def split_and_interleave_fasta(fasta_path, prefix, seq_per_split):
     if len(records) % seq_per_split != 0:
         num_splits += 1
 
-    logging.info(f"{len(records)} sequences loaded from FASTA. Sort by length...")
+    logging.info(f"{len(records)} sequences loaded from fasta file")
     records.sort(key=lambda x: x[2], reverse=True)  # sort by length in descending order
-
-    logging.info(f"Distribute alleles in a round-robin manner across {num_splits} files.")
     
     output_files = []
     for i in range(1, num_splits + 1):
@@ -80,4 +77,4 @@ def split_and_interleave_fasta(fasta_path, prefix, seq_per_split):
     for fh in output_files:
         fh.close()
 
-    logging.info(f"Successfully created {num_splits} balanced FASTA files.")
+    logging.info(f"Successfully created {num_splits} balanced fasta files")
