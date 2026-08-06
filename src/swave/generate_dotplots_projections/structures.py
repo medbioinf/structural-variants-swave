@@ -3,8 +3,8 @@ Based on the Swave software package (https://github.com/songbowang125/Swave).
 Originally licensed under the GPL-3.0.
 
 Publication:
-Wang, S., Xu, T., Zhang, P. & Ye, K. Population-level structural variant 
-characterization using pangenome graphs. Nat Genet (2026). 
+Wang, S., Xu, T., Zhang, P. & Ye, K. Population-level structural variant
+characterization using pangenome graphs. Nat Genet (2026).
 https://doi.org/10.1038/s41588-026-02538-6
 
 Modified and refactored for Nextflow integration.
@@ -81,6 +81,10 @@ class Dotplot:
         del self._rows, self._cols, self._rows_rev, self._cols_rev
 
     def create_matrix_against_x(self, given_x_kmer_index=None):
+        """
+        Creates the dotplot matrix by iterating over the y sequence and finding
+        all matching k-mers in the x sequence.
+        """
         if given_x_kmer_index is None:
             self.seq_x_kmer_index = KmerIndex(self.seq_x, kmer_size=self.kmer_size, stride_size=self.stride_size)
         else:
@@ -113,6 +117,10 @@ class Dotplot:
             pos_on_y += self.stride_size
 
     def create_matrix_against_y(self, given_y_kmer_index=None):
+        """
+        Creates the dotplot matrix by iterating over the x sequence and finding
+        all matching k-mers in the y sequence.
+        """
         if given_y_kmer_index is None:
             self.seq_y_kmer_index = KmerIndex(self.seq_y, kmer_size=self.kmer_size, stride_size=self.stride_size)
         else:
@@ -206,6 +214,7 @@ class Dotplot:
         return project_y_rev
 
     def to_png(self, reverse=False, out_img=False):
+        """Saves the dotplot matrix as a PNG image."""
         if not out_img:
             return
         
