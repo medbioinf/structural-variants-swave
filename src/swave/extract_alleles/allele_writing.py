@@ -73,84 +73,94 @@ def extract_and_write_alleles_to_fasta(snarls_dict, fasta_index, output):
     Extracts the allele sequences for each snarl and writes them to a fasta file.
     """
     header_counts = {}
-    
+
     logging.info(f"Writing alleles for {len(snarls_dict)} snarls to {output}")
-    
+
     with open(output, 'w') as output_file:
         for snarl_id, snarl_obj in snarls_dict.items():
+            ref_path = snarl_obj.ref_asm_path if snarl_obj.ref_asm_path is not None else "*"
+
             for alt_path, samples in snarl_obj.path_asm_dict.items():
-                
+
                 if alt_path == "*":
                     allele_seq = ""
                 else:
                     allele_parts = []
-                
+
                     nodes_in_path = re.findall(r'[><]([a-zA-Z0-9]+)', alt_path)
                     orients_in_path = re.findall(r'([><])', alt_path)
-                    
+
                     for i in range(len(nodes_in_path)):
                         node_id = nodes_in_path[i]
                         orient = orients_in_path[i]
-                        
+
                         if node_id not in fasta_index:
                             logging.warning(f"Node {node_id} not found in fasta index, skipping")
                             continue
-                        
+
                         node_seq = fasta_index[node_id]
-                        
+
                         if orient == "<":
                             node_seq = reverse_complement_seq(node_seq)
-                        
+
                         allele_parts.append(node_seq)
-                    
+
                     allele_seq = "".join(allele_parts)
-            
+
                 display_seq = allele_seq if allele_seq != "" else "-"
-                
+
                 is_reversed_mapping = "true" if snarl_obj.reversed_mapping else "false"
-                
+
                 for sample in samples:
-                    base_header = f">{sample}|{snarl_id}|{snarl_obj.ref_chrom}:{snarl_obj.ref_start}-{snarl_obj.ref_end}|reversed:{is_reversed_mapping}"
-                    
+                    base_header = (
+                        f">{sample}|{snarl_id}|{snarl_obj.ref_chrom}:{snarl_obj.ref_start}-{snarl_obj.ref_end}"
+                        f"|reversed:{is_reversed_mapping}|alt_path:{alt_path}|ref_path:{ref_path}"
+                    )
+
                     # handle rare case of duplicate headers
                     if base_header not in header_counts:
                         header_counts[base_header] = 0
                         fasta_header = f">{base_header}"
                     else:
                         header_counts[base_header] += 1
-                        fasta_header = f">{base_header}_{header_counts[base_header]}"   # changes e.g. "reversed:false" to "reversed:false_1"
+                        fasta_header = f">{base_header}_{header_counts[base_header]}"
 
                     output_file.write(f"{fasta_header}\n")
                     output_file.write(f"{display_seq}\n")
-                
+
     logging.info(f"Successfully extracted snarl alleles.")
 
 
-def extract_alleles_for_sample(graph_construction_tool, sample_id, gfa_fasta_path, output_dir, options, bed_path=None, vcf_path=None):
+def extract_alleles_for_sample(graph_construction_tool, sample_id, gfa_fasta_path, output_dir, options, bed_path=None, vcf_path=None, is_ref=False, ref_bed_path=None):
     """
     Extracts alleles from the specified graph source (minigraph, pggb, or cactus) and writes them to a fasta file.
     """
     logging.info(f"Extracting alleles for sample '{sample_id}' from {graph_construction_tool} source")
-    
+
     nodes_dict, fasta_index = load_nodes_from_fasta(gfa_fasta_path)
 
     if graph_construction_tool == "minigraph":
         if bed_path is None:
             raise ValueError("bed_path is required when graph_construction_tool='minigraph'")
-        from .minigraph_parsing import parse_minigraph_bed_to_snarls
-        results = parse_minigraph_bed_to_snarls(bed_path, sample_id, nodes_dict, options)
+        from .minigraph_parsing import build_ref_path_lookup, parse_minigraph_bed_to_snarls
         
+        ref_path_lookup = None
+        if not is_ref and ref_bed_path is not None:
+            ref_path_lookup = build_ref_path_lookup(ref_bed_path, nodes_dict, options)
+        
+        results = parse_minigraph_bed_to_snarls(bed_path, sample_id, nodes_dict, options, is_ref=is_ref, ref_path_lookup=ref_path_lookup)
+
     elif graph_construction_tool in ("pggb", "cactus"):
         if vcf_path is None:
             raise ValueError("vcf_path is required when graph_construction_tool in ('pggb', 'cactus')")
         from .vg_deconstruct_parsing import parse_vg_deconstructed_vcf_to_snarls
         results = parse_vg_deconstructed_vcf_to_snarls(vcf_path, sample_id, options)
-        
+
     else:
         raise ValueError(f"Unknown graph_construction_tool: {graph_construction_tool}")
 
     os.makedirs(output_dir, exist_ok=True)
-    
+
     output_paths = []
     for label, snarls_dict in results.items():
         output_path = os.path.join(output_dir, f"{label}_alleles.fa")

@@ -23,13 +23,14 @@ def main():
     parser = argparse.ArgumentParser(description="Extracts structural variant alleles for a sample or reference from a pangenome graph, using either a minigraph BED file or a vg-deconstruct VCF as the allele-path source.")
     
     parser.add_argument("--version", action="version", version=f"{__version__}")
-    
     parser.add_argument("--graph_construction_tool", required=True, choices=["minigraph", "pggb", "cactus"], help="Pangenome graph construction tool that produced the input allele-path file.")
     parser.add_argument("--gfa_fasta", required=True, help="Path to the gfatools gfa2fa node FASTA file.")
     parser.add_argument("--sample_id", required=True, help="Name/ID of the sample being processed.")
     parser.add_argument("--output_dir", default=".", help="Directory to write the extracted allele FASTA file(s) into (default: current directory).")
     parser.add_argument("--bed", default=None, help="Path to the sample minigraph --call BED file. Required when --graph_construction_tool=minigraph.")
     parser.add_argument("--vcf", default=None, help="Path to the sample or reference vg-deconstruct VCF file. Required when --graph_construction_tool=pggb or cactus.")
+    parser.add_argument("--is_ref", action="store_true", help="Mark the input as the reference genome rather than a sample. Only applies when --graph_construction_tool=minigraph; for pggb/cactus this is inferred automatically from the VCF itself.")
+    parser.add_argument("--ref_bed", default=None, help="Path to the reference's minigraph --call BED file, used to look up each snarl's reference-assembly path. Only applies when --graph_construction_tool=minigraph and --is_ref is not set.")
 
     # optional parameters
     parser.add_argument("--spec_snarl", default=None, help="Specific snarl ID to process (e.g. '>s1>s3') for debugging/analysis. If not provided, all snarls will be extracted.")
@@ -52,6 +53,8 @@ def main():
         options=options,
         bed_path=options.bed,
         vcf_path=options.vcf,
+        is_ref=options.is_ref,
+        ref_bed_path=options.ref_bed
     )
 
     sys.exit(0)

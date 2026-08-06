@@ -26,6 +26,49 @@ logging.basicConfig(
 )
 
 
+def build_ref_path_lookup(ref_bed_path, nodes_dict, options):
+    """
+    Reads the reference's minigraph BED and builds a lightweight
+    { snarl_id: ref_path } lookup, used by sample parsing to attach
+    each snarl's reference-assembly path.
+    """
+    lookup = {}
+
+    with open(ref_bed_path, 'r') as bed_file:
+        for line in bed_file:
+            parts = line.strip().split('\t')
+
+            snarl_start_node_with_orient = parts[3]
+            snarl_end_node_with_orient = parts[4]
+            snarl_id = f"{snarl_start_node_with_orient[0]}{snarl_start_node_with_orient[1:]}{snarl_end_node_with_orient[0]}{snarl_end_node_with_orient[1:]}"
+
+            alt_path = parts[5].split(':')[0]
+
+            if alt_path == ".":
+                lookup[snarl_id] = "*"
+                continue
+
+            if options.remove_small:
+                alt_path_include_nodes = re.findall(r'([a-zA-Z0-9]+)', alt_path)
+                alt_path_include_nodes_orients = re.findall(r'([><])', alt_path)
+
+                small_node_indices = []
+                for index in range(len(alt_path_include_nodes) - 1, -1, -1):
+                    node_id = alt_path_include_nodes[index]
+                    if node_id in nodes_dict and nodes_dict[node_id].length < options.min_sv_size:
+                        small_node_indices.append(index)
+
+                for index in small_node_indices:
+                    alt_path_include_nodes.pop(index)
+                    alt_path_include_nodes_orients.pop(index)
+
+                alt_path = "".join(f"{alt_path_include_nodes_orients[i]}{alt_path_include_nodes[i]}" for i in range(len(alt_path_include_nodes)))
+
+            lookup[snarl_id] = alt_path if alt_path != "" else "*"
+
+    return lookup
+
+
 def retrieve_reverse_mapping_snarl(contig_mapping_dict, contig_mapping_stats):
     """
     Retrieves reverse mapping snarls based on the contig mapping info and stats.
@@ -119,7 +162,7 @@ def retrieve_reverse_mapping_snarl(contig_mapping_dict, contig_mapping_stats):
     return reverse_mapping_snarl_dict
 
 
-def parse_minigraph_bed_to_snarls(bed_path, sample_id, nodes_dict, options):
+def parse_minigraph_bed_to_snarls(bed_path, sample_id, nodes_dict, options, is_ref=False, ref_path_lookup=None):
     r"""
     Parses the minigraph --call BED file to extract snarl information.
     
@@ -212,6 +255,11 @@ def parse_minigraph_bed_to_snarls(bed_path, sample_id, nodes_dict, options):
             if alt_path not in snarls_dict[snarl_id].path_asm_dict:
                 snarls_dict[snarl_id].path_asm_dict[alt_path] = []
             snarls_dict[snarl_id].path_asm_dict[alt_path].append(sample_id)
+            
+            if is_ref:
+                snarls_dict[snarl_id].ref_asm_path = alt_path
+            elif ref_path_lookup is not None:
+                snarls_dict[snarl_id].ref_asm_path = ref_path_lookup.get(snarl_id, "*")
         
         # handle reversed mappings and add them to the snarls_dict
         if options.force_reverse:

@@ -137,6 +137,8 @@ def parse_vg_deconstructed_vcf_to_snarls(vcf_path, sample_id, options):
                     if alt_path not in snarl_obj.path_asm_dict:
                         snarl_obj.path_asm_dict[alt_path] = []
                     snarl_obj.path_asm_dict[alt_path].append(hap_label)
+                    
+                    snarl_obj.ref_asm_path = ref_asm_path
 
     logging.info(f"Parsed {len(results)} haplotype/reference output(s) from {vcf_path}")
     return results
